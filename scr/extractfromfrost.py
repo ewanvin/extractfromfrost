@@ -429,13 +429,15 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
         except KeyError:
             ds.attrs['keywords_vocabulary'] = vocab
 
-    # License (TODO, not complete)
+    # License 
     if stmdd:
         stmddkeys = stmdd.keys()
         if 'license' in stmddkeys:
             ds.attrs['license'] = stmdd['license']
         else:
             ds.attrs['license'] = dsmd['license']
+    else:
+        ds.attrs['license'] = dsmd['license']
 
     # Spatiotemporal information
     ds.attrs['time_coverage_start'] = dyninfo['datasetstart']
