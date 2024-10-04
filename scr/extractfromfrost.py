@@ -188,6 +188,20 @@ def initialise_logger(outputfile = './log'):
 
     return(mylog)
 
+def createMETuuid(infile):
+    """
+    Create a unique identifier for the dataset. Here we use the approach from mdharvest with data centre MET/ADC since data are published there
+    """
+    # Prepare creation of UUID
+    filename = "https://arcticdata.met.no/ds/"+os.path.basename(infile)+"-"
+    filename += datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    # Create UUID
+    myuuid = uuid.uuid5(uuid.NAMESPACE_URL,filename)
+    # Add namespace
+    myidentifier = 'no.met.adc:'+str(myuuid)
+
+    return myidentifier
 
 def pull_request(site, request, frostcfg, mylog, s = None, data = False):
     
