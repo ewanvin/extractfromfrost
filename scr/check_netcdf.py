@@ -41,7 +41,7 @@ def parse_arguments():
     parser.add_argument("-l","--log",dest="logdir",
             help="Destination where to put logfiles", required=True)
     parser.add_argument("-o","--overwrite",action='store_true',
-            help="Overwrite if NCML is existing")
+            help="Overwrite if NetCDF file is existing")
     args = parser.parse_args()
 
     """
