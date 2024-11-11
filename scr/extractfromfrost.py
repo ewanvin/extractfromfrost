@@ -20,6 +20,7 @@ import yaml
 import logging
 import logging.handlers
 import re
+import uuid
 from datetime import datetime, timedelta, date, timezone
 from calendar import monthrange, month_name
 
@@ -187,21 +188,6 @@ def initialise_logger(outputfile = './log'):
     mylog.addHandler(file_handler)
 
     return(mylog)
-
-def createMETuuid(infile):
-    """
-    Create a unique identifier for the dataset. Here we use the approach from mdharvest with data centre MET/ADC since data are published there
-    """
-    # Prepare creation of UUID
-    filename = "https://arcticdata.met.no/ds/"+os.path.basename(infile)+"-"
-    filename += datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-
-    # Create UUID
-    myuuid = uuid.uuid5(uuid.NAMESPACE_URL,filename)
-    # Add namespace
-    myidentifier = 'no.met.adc:'+str(myuuid)
-
-    return myidentifier
 
 def pull_request(site, request, frostcfg, mylog, s = None, data = False):
     
@@ -541,6 +527,21 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
             ds.attrs['project'] = dsmd['Project']
 
     return(ds)
+
+def createMETuuid(infile):
+    """
+    Create a unique identifier for the dataset. Here we use the approach from mdharvest with data centre MET/ADC since data are published there
+    """
+    # Prepare creation of UUID
+    filename = "https://arcticdata.met.no/ds/"+os.path.basename(infile)+"-"
+    filename += datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    # Create UUID
+    myuuid = uuid.uuid5(uuid.NAMESPACE_URL,filename)
+    # Add namespace
+    myidentifier = 'no.met.adc:'+str(myuuid)
+
+    return myidentifier
 
 def extractdata(frostcfg, pars, log, stmd, output, simple=True):
     '''
@@ -1018,7 +1019,11 @@ def extractdata(frostcfg, pars, log, stmd, output, simple=True):
                 except TypeError:
                     voc_list = None 
 
-                # Dump to NetCDF in monthly files, continues updates are overwriting the last file.
+                """
+                Dump to NetCDF in monthly files, continues updates are overwriting the last file.
+
+                Old identifiers are reused.
+                """
                 out_folder = os.path.join(output['destdir'], s, str(datetime.strptime(p[0],'%Y-%m-%d').year))
                 if frostcfg['stations'][s] != None:
                     if 'sourceId' in frostcfg['stations'][s]:
@@ -1031,6 +1036,47 @@ def extractdata(frostcfg, pars, log, stmd, output, simple=True):
                     pass
                 else:
                     os.mkdir(out_folder)
+                oldid = None
+                oldhist = None
+                # Check if file already exist and keep some information
+                # This can be further cleaned along the lines of pubishcriosdata
+                # but that is a larger rewrite
+                if os.path.isfile(outputfile):
+                    mylog.info("%s exists, will retrieve existing identifier", outputfile)
+                    # The open the file
+                    try:
+                        oldds = xr.open_dataset(outputfile)
+                    except Exception as e:
+                        mylog.warning("Could not open old dataset: %s", e)
+                        mylog.warning("Overwriting...")
+                    # Retrieve existing identifier
+                    if 'id' in oldds.attrs.keys():
+                        oldid = oldds.attrs['id']
+                    else:
+                        mylog.info('No id found, adding one')
+                        # This is done further down...
+                    # Get the original history statement for amendment
+                    if 'history' in oldds.attrs.keys():
+                        oldhist = oldds.attrs['history']
+                    # Get the last time step handled for clean merging
+                    """
+                    This is not used yet
+                    lastobs = oldds['time'].values[-1]
+                    oldds.close()
+                    # Drop new values that are already covered in the file
+                    # FIXME
+                    ## sample: df2 = df.where(df.time.dt.hour == 12, drop=True)
+                    cleanew = ds['ds'].where(ds['ds'].time > lastobs)
+                    # 
+                    # Merge datasets if needed FIXME - check carefully
+                    # the duplicate times are added
+                    uds = xr.concat([oldds, cleanew], dim='time', coords='minimal', compat="no_conflicts")
+                    #sys.exit()
+                    uds.attrs['time_coverage_end'] = ds['ds'].attrs['time_coverage_end']
+                    #uds.attrs['history'] = oldds.attrs['history']+'\n'+datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')+': Updated'
+                    ds['ds'] = uds
+                    myappend = True
+                    """
                 try:
                     if all_ds_station.data_vars: 
                         #To pass time to int32, otherwise the netcdf will be written with time in int64
@@ -1050,13 +1096,17 @@ def extractdata(frostcfg, pars, log, stmd, output, simple=True):
                         sys.exit()
                         """
                         all_ds_station = all_ds_station.fillna(myfillvalue)
-                        # Dump data
+                        # Add the identifier if not existing
+                        if oldid:
+                            all_ds_station_period.attrs['id'] = oldid
+                        else:
+                            all_ds_station_period.attrs['id'] = createMETuuid(outputfile)
+                        # Dump data to CF-NetCDF
                         all_ds_station_period.to_netcdf(outputfile, encoding=set_encoding(all_ds_station_period, time_name=alltimes[0]))
                         del all_ds_station
                         del all_ds_station_period
                     else:
                         continue
-                #except TypeError:
                 except Exception as e:
                     log.error("Something went wrong dumping data to file: %s", e)
                     sys.exit()
