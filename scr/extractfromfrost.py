@@ -1059,6 +1059,7 @@ def extractdata(frostcfg, pars, log, stmd, output, simple=True):
                     if 'history' in oldds.attrs.keys():
                         oldhist = oldds.attrs['history']
                     # Get the last time step handled for clean merging
+                    oldds.close()
                     """
                     This is not used yet
                     lastobs = oldds['time'].values[-1]
