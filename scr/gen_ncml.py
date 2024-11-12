@@ -33,7 +33,7 @@ from netCDF4 import Dataset
 import pytz
 from datetime import datetime
 import numpy as np
-
+from extractfromfrost import createMETuuid
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -122,10 +122,16 @@ def traverse_structure(myfolder):
 
 
 def create_ncml(myncmlfile, aggdir):
+    """
+    Create new NCML and set identifier.
+    """
     # Check if NCML already exist
     if os.path.isfile(myncmlfile) and not args.overwrite:
         mylog.warning("%s already exists, won't do anything", myncmlfile)
         return
+
+    # Create identifier to use
+    myid = createMETuuid(myncmlfile)
 
     # Create NCML
     ns_map = {None: 'http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2'}
@@ -134,12 +140,7 @@ def create_ncml(myncmlfile, aggdir):
     aggel.set('dimName', 'time')
     aggel.set('type', 'joinExisting')
     aggel.set('recheckEvery', '1 day')
-    """
-    Removed in favor of listing fo files
-    scanel = ET.SubElement(aggel, ET.QName('scan'))
-    scanel.set('location', aggdir)
-    scanel.set('suffix','.nc')
-    """
+
     # Set up specific files to include, assuming data stored in years
     # Set a time stamp into the future...
     mystarttime = 4000000000
@@ -161,15 +162,23 @@ def create_ncml(myncmlfile, aggdir):
                     netcdf.set('location', myfile)
                     netcdf.set('coordValue', tmpstring)
                     myncds.close()
+
+    # Make sure the start time is correct
     mymeta = ET.SubElement(root, ET.QName('attribute'))
     mymeta.set('name', 'time_coverage_start')
     mymeta.set('value', datetime.fromtimestamp(mystarttime).astimezone(pytz.timezone('UTC'))
                .strftime("%Y-%m-%dT%H:%M:%S%z"))
 
+    # Set end time to empty to indicate ongoing dataset
     if args.end_time:
         end_time_element = ET.SubElement(root, ET.QName('attribute'))
         end_time_element.set('name', 'time_coverage_end')
         end_time_element.set('value', '')
+
+    # Add identifier (cannot be taken from aggregated files)
+    mymeta = ET.SubElement(root, ET.QName('attribute'))
+    mymeta.set('name', 'id')
+    mymeta.set('value', myid)
 
     # Dump NCML file
     et = ET.ElementTree(root)
@@ -177,6 +186,9 @@ def create_ncml(myncmlfile, aggdir):
 
 
 def update_ncml(myncmlfile, aggdir):
+    """
+    Just add new time steps to the aggregation file.
+    """
     parser = ET.XMLParser(remove_blank_text=True)
     tree = ET.parse(myncmlfile, parser)
     root = tree.getroot()
