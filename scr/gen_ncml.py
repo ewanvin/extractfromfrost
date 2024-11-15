@@ -139,7 +139,7 @@ def create_ncml(myncmlfile, aggdir):
     aggel = ET.SubElement(root, ET.QName('aggregation'))
     aggel.set('dimName', 'time')
     aggel.set('type', 'joinExisting')
-    aggel.set('recheckEvery', '1 day')
+    aggel.set('recheckEvery', '2 hour')
 
     # Set up specific files to include, assuming data stored in years
     # Set a time stamp into the future...
