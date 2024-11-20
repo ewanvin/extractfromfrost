@@ -126,12 +126,20 @@ def create_ncml(myncmlfile, aggdir):
     Create new NCML and set identifier.
     """
     # Check if NCML already exist
-    if os.path.isfile(myncmlfile) and not args.overwrite:
-        mylog.warning("%s already exists, won't do anything", myncmlfile)
-        return
-
-    # Create identifier to use
-    myid = createMETuuid(myncmlfile)
+    if os.path.isfile(myncmlfile):
+        if args.overwrite:
+            # keep identifier even if overwriting
+            parser = ET.XMLParser(remove_blank_text=True)
+            tree = ET.parse(myncmlfile, parser)
+            root = tree.getroot()
+            idel = root.find("{http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2}attribute[@name='id']")
+            myid = idel.get('value')
+        else:
+            mylog.warning("%s already exists, won't do anything", myncmlfile)
+            return
+    else:
+        # Create identifier to use
+        myid = createMETuuid(myncmlfile)
 
     # Create NCML
     ns_map = {None: 'http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2'}
@@ -158,10 +166,19 @@ def create_ncml(myncmlfile, aggdir):
                     if min(tmp) < mystarttime:
                         mystarttime = min(tmp)
                     tmpstring = ' '.join(str(num) for num in tmp)
+                    """
+                    # This does not work with TDS v4, there is an upper limit of time steps
+                    # Removing this Øystein Godøy, METNO/FOU, 2024-11-20 
+                    # Replacing with a standard scan element instead
                     netcdf = ET.SubElement(aggel, ET.QName('netcdf'))
                     netcdf.set('location', myfile)
                     netcdf.set('coordValue', tmpstring)
+                    """
                     myncds.close()
+    mymeta = ET.SubElement(aggel, ET.QName('scan'))
+    mymeta.set('location', aggdir)
+    mymeta.set('suffix', '.nc')
+    mymeta.set('subdirs', 'true')
 
     # Make sure the start time is correct
     mymeta = ET.SubElement(root, ET.QName('attribute'))
@@ -188,6 +205,8 @@ def create_ncml(myncmlfile, aggdir):
 def update_ncml(myncmlfile, aggdir):
     """
     Just add new time steps to the aggregation file.
+    Øystein Godøy, METNO/FOU, 2024-11-20 
+    not being used any more, but keeping code in case TDS or HYRAX can gandle the number of time steps.
     """
     parser = ET.XMLParser(remove_blank_text=True)
     tree = ET.parse(myncmlfile, parser)
