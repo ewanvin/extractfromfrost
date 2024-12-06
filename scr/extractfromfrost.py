@@ -231,17 +231,17 @@ def get_stations(frostcfg, pars, mylog):
         # Retrieve selected stations identified in cfg
         mylog.info('Retrieving selected '+frostcfg['st_type']+' stations in FROST.')
         stations = frostcfg['stations']       
-        myrequest = 'ids='+','.join(stations.keys())
+        myrequest = 'ids='+','.join(stations.keys())+'&validtime=1000-01-01/9999-01-01'
         metadata, msger = pull_request(frostcfg['endpointmeta'], myrequest, frostcfg, mylog)
     else:
         # Retrieve all stations found
         mylog.info('Retrieving all '+frostcfg['st_type']+' stations in FROST. %s')
         if st_type == 'permafrost':
-            myrequest = 'types=SensorSystem&elements=soil_temperature'
+            myrequest = 'types=SensorSystem&elements=soil_temperature'+'&validtime=1000-01-01/9999-01-01'
         elif st_type == 'moving':
-            myrequest = 'types=SensorSystem&municipality=skip'
+            myrequest = 'types=SensorSystem&municipality=skip'+'&validtime=1000-01-01/9999-01-01'
         elif st_type == 'fixed':
-            myrequest = 'types=SensorSystem&elements!=soil_temperature&municipality!=skip'
+            myrequest = 'types=SensorSystem&elements!=soil_temperature&municipality!=skip'+'&validtime=1000-01-01/9999-01-01'
         metadata, msger = pull_request(frostcfg['endpointmeta'], myrequest, frostcfg, mylog)
         stations = list(set([x['id'] for x  in metadata['data']]))       
     
@@ -436,12 +436,14 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
         dsmdkeys = dsmd.keys()
 
     # License 
-    if 'license' in stmddkeys:
-        ds.attrs['license'] = stmdd['license']
-    elif 'license' in dsmdkeys:
-        ds.attrs['license'] = dsmd['license']
+    if stmdd:
+        if 'license' in stmddkeys:
+            ds.attrs['license'] = stmdd['license']
     else:
-        ds.attrs['license'] = 'Not provided'
+        if 'license' in dsmdkeys:
+            ds.attrs['license'] = dsmd['license']
+        else:
+            ds.attrs['license'] = 'Not provided'
 
     # Spatiotemporal information
     ds.attrs['time_coverage_start'] = dyninfo['datasetstart']
@@ -512,7 +514,7 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
     ds.attrs['publisher_institution'] = 'Norwegian Meteorological Institute'
 
     # Conventions specification
-    ds.attrs['Conventions'] = 'ACDD, CF-1.8'
+    ds.attrs['Conventions'] = 'ACDD, CF-1.11'
 
     # Provenance information
     ds.attrs['date_created'] = stmd['createdAt']
@@ -520,7 +522,8 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
     ds.attrs['source'] = 'Norwegian Meteorological Institute archive of historical weather and climate data' 
 
     # Identifiers
-    ds.attrs['wigosId'] = stmd['data'][0]['wigosId']
+    if 'wigosId' in stmd['data'][0].keys():
+        ds.attrs['wigosId'] = stmd['data'][0]['wigosId']
     ds.attrs['MET_Identifier'] =  stmd['data'][0]['id']
 
     # Project linkages
@@ -639,7 +642,7 @@ def extractdata(frostcfg, pars, log, stmd, output, simple=True):
         # Connect and read metadata about the station
         log.info("New station\n==========")
         log.info('Retrieving station metadata for station: %s', s)
-        myrequest_station = 'ids='+s
+        myrequest_station = 'ids='+s+'&validtime=1000-01-01/9999-01-01'
         metadata, msger = pull_request(frostcfg['endpointmeta'], myrequest_station, frostcfg, log, s=s)
         #print(json.dumps(metadata, indent=4))
         #print(metadata['data'][0]['name'])
