@@ -429,15 +429,19 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
         except KeyError:
             ds.attrs['keywords_vocabulary'] = vocab
 
-    # License 
+    # Extract some useful key lists
     if stmdd:
         stmddkeys = stmdd.keys()
-        if 'license' in stmddkeys:
-            ds.attrs['license'] = stmdd['license']
-        else:
-            ds.attrs['license'] = dsmd['license']
-    else:
+    if dsmd:
+        dsmdkeys = dsmd.keys()
+
+    # License 
+    if 'license' in stmddkeys:
+        ds.attrs['license'] = stmdd['license']
+    elif 'license' in dsmdkeys:
         ds.attrs['license'] = dsmd['license']
+    else:
+        ds.attrs['license'] = 'Not provided'
 
     # Spatiotemporal information
     ds.attrs['time_coverage_start'] = dyninfo['datasetstart']
@@ -523,8 +527,37 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
     if stmdd:
         if 'Project' in stmddkeys:
             ds.attrs['project'] = stmdd['Project']
-        else:
+        elif 'Project' in dsmdkeys:
             ds.attrs['project'] = dsmd['Project']
+        else:
+            ds.attrs['project'] = 'Not provided'
+
+    # Collection linkages
+    if stmdd:
+        if 'Collection' in stmddkeys:
+            ds.attrs['collection'] = stmdd['Collection']
+        elif 'Collection' in dsmdkeys:
+            ds.attrs['collection'] = dsmd['Collection']
+        else:
+            ds.attrs['collection'] = 'Not provided'
+
+    # activity type
+    if stmdd:
+        if 'activity_type' in stmddkeys:
+            ds.attrs['activity_type'] = stmdd['activity_type']
+        elif 'activity_type' in dsmdkeys:
+            ds.attrs['activity_type'] = dsmd['activity_type']
+        else:
+            ds.attrs['activity_type'] = 'Not provided'
+
+    # iso topic category
+    if stmdd:
+        if 'iso_topic_category' in stmddkeys:
+            ds.attrs['iso_topic_category'] = stmdd['iso_topic_category']
+        elif 'iso_topic_category' in dsmdkeys:
+            ds.attrs['iso_topic_category'] = dsmd['iso_topic_category']
+        else:
+            ds.attrs['iso_topic_category'] = 'Not provided'
 
     return(ds)
 
