@@ -376,7 +376,7 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
     ds: xarray object
         xarray dataset
     dsmd: dict
-        generic global attributesa from configuration file
+        generic global attributes from configuration file
     stmd: dict
         Metadata from frost
     stmdd: dict
@@ -530,7 +530,8 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
     if stmdd:
         if 'Project' in stmddkeys:
             ds.attrs['project'] = stmdd['Project']
-        elif 'Project' in dsmdkeys:
+    else:
+        if 'Project' in dsmdkeys:
             ds.attrs['project'] = dsmd['Project']
         else:
             ds.attrs['project'] = 'Not provided'
@@ -539,7 +540,8 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
     if stmdd:
         if 'Collection' in stmddkeys:
             ds.attrs['collection'] = stmdd['Collection']
-        elif 'Collection' in dsmdkeys:
+    else:
+        if 'Collection' in dsmdkeys:
             ds.attrs['collection'] = dsmd['Collection']
         else:
             ds.attrs['collection'] = 'Not provided'
@@ -548,7 +550,8 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
     if stmdd:
         if 'activity_type' in stmddkeys:
             ds.attrs['activity_type'] = stmdd['activity_type']
-        elif 'activity_type' in dsmdkeys:
+    else:
+        if 'activity_type' in dsmdkeys:
             ds.attrs['activity_type'] = dsmd['activity_type']
         else:
             ds.attrs['activity_type'] = 'Not provided'
@@ -557,7 +560,8 @@ def add_global_attrs(sttype, ds, dsmd, stmd, stmdd, dyninfo, kw, bbox=None):
     if stmdd:
         if 'iso_topic_category' in stmddkeys:
             ds.attrs['iso_topic_category'] = stmdd['iso_topic_category']
-        elif 'iso_topic_category' in dsmdkeys:
+    else:
+        if 'iso_topic_category' in dsmdkeys:
             ds.attrs['iso_topic_category'] = dsmd['iso_topic_category']
         else:
             ds.attrs['iso_topic_category'] = 'Not provided'
